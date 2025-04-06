@@ -175,3 +175,15 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.login(process.env.TOKEN);
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => {
+  res.send('Bot en funcionamiento');
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor activo en el puerto ${PORT}`);
+});
+
