@@ -1,6 +1,8 @@
 {
-  "fichajeChannel": "1358320291755069462",
-  "allowedRoles": [
-    "Waos"
-  ]
+  "fichajeChannel": "",
+  "bajasChannel": "",
+  "transferChannel": "",
+  "allowedRoles": [],
+  "bajasRoles": [],
+  "transferRoles": []
 }
