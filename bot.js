@@ -64,7 +64,7 @@ client.on('interactionCreate', async interaction => {
       if (interaction.user.id !== id.split('_')[1]) {
         return interaction.reply({ content: 'Solo el fichado puede confirmar.', ephemeral: true });
       }
-      await interaction.reply({ content: '¡Fichaje confirmado! ✅', ephemeral: true });
+      return await interaction.reply({ content: '¡Fichaje confirmado! ✅', ephemeral: true });
     }
   }
 
@@ -79,6 +79,8 @@ client.on('interactionCreate', async interaction => {
     fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
     return null;
   };
+
+  // Todos los comandos aquí dentro ↓↓↓
 
   if (commandName === 'set-canal-fichajes') {
     if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) return interaction.reply({ content: 'Solo los administradores pueden cambiar el canal.', ephemeral: true });
@@ -114,29 +116,6 @@ client.on('interactionCreate', async interaction => {
     if (err) return interaction.reply({ content: err, ephemeral: true });
     return interaction.reply('Roles permitidos para bajas actualizados.');
   }
-});
-
-// Express y ping automático para mantener el bot activo
-const express = require('express');
-const app = express();
-
-app.get('/', (req, res) => res.send('Bot en funcionamiento'));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
-
-// Manejadores de errores
-process.on('warning', (warning) => {
-  if (!warning.message.includes('ephemeral')) console.warn(warning);
-});
-
-process.on('unhandledRejection', err => {
-  console.error('Unhandled promise rejection:', err);
-});
-
-process.on('uncaughtException', err => {
-  console.error('Uncaught exception:', err);
-});
 
   if (commandName === 'set-roles-transferencia') {
     if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) return interaction.reply({ content: 'Solo los administradores pueden configurar roles.', ephemeral: true });
@@ -146,7 +125,10 @@ process.on('uncaughtException', err => {
   }
 
   if (commandName === 'info-fichador') {
-    return interaction.reply(`Canal de fichajes: ${config.fichajeChannel ? `<#${config.fichajeChannel}>` : 'No configurado'}\nRoles fichajes: ${config.allowedRoles?.join(', ') || 'Ninguno'}\nRoles bajas: ${config.bajasRoles?.join(', ') || 'Ninguno'}\nRoles transferencia: ${config.transferRoles?.join(', ') || 'Ninguno'}`);
+    return interaction.reply(`Canal de fichajes: ${config.fichajeChannel ? `<#${config.fichajeChannel}>` : 'No configurado'}
+Roles fichajes: ${config.allowedRoles?.join(', ') || 'Ninguno'}
+Roles bajas: ${config.bajasRoles?.join(', ') || 'Ninguno'}
+Roles transferencia: ${config.transferRoles?.join(', ') || 'Ninguno'}`);
   }
 
   if (commandName === 'fichar') {
@@ -217,8 +199,6 @@ process.on('uncaughtException', err => {
     return interaction.reply({ content: `El usuario fue transferido correctamente.`, ephemeral: true });
   }
 });
-
-client.login(process.env.TOKEN);
 
 // Express y ping automático
 const express = require('express');
