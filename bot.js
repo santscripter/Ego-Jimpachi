@@ -191,6 +191,14 @@ client.on('interactionCreate', async interaction => {
     if (canal) canal.send(`**${usuario.tag}** ha sido transferido de **${clubOrigen.name}** a **${clubDestino.name}**.`);
     return interaction.reply({ content: `El usuario fue transferido de ${clubOrigen.name} a ${clubDestino.name}.`, ephemeral: true });
   }
-});
+// Mantener el bot activo en Render (evita que lo apague)
+const express = require('express');
+const app = express();
 
+app.get('/', (req, res) => res.send('Bot en funcionamiento'));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
+
+// Iniciar el bot
 client.login(process.env.TOKEN);
