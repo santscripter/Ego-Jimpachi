@@ -49,6 +49,7 @@ client.once('ready', async () => {
   ];
 
   const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+
   try {
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
     console.log('Comandos / registrados correctamente.');
@@ -81,7 +82,6 @@ client.on('interactionCreate', async interaction => {
   };
 
   // Todos los comandos aquí dentro ↓↓↓
-
   if (commandName === 'set-canal-fichajes') {
     if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) return interaction.reply({ content: 'Solo los administradores pueden cambiar el canal.', ephemeral: true });
     config.fichajeChannel = interaction.channel.id;
@@ -125,10 +125,7 @@ client.on('interactionCreate', async interaction => {
   }
 
   if (commandName === 'info-fichador') {
-    return interaction.reply(`Canal de fichajes: ${config.fichajeChannel ? `<#${config.fichajeChannel}>` : 'No configurado'}
-Roles fichajes: ${config.allowedRoles?.join(', ') || 'Ninguno'}
-Roles bajas: ${config.bajasRoles?.join(', ') || 'Ninguno'}
-Roles transferencia: ${config.transferRoles?.join(', ') || 'Ninguno'}`);
+    return interaction.reply(`Canal de fichajes: ${config.fichajeChannel ? `<#${config.fichajeChannel}>` : 'No configurado'} Roles fichajes: ${config.allowedRoles?.join(', ') || 'Ninguno'} Roles bajas: ${config.bajasRoles?.join(', ') || 'Ninguno'} Roles transferencia: ${config.transferRoles?.join(', ') || 'Ninguno'}`);
   }
 
   if (commandName === 'fichar') {
@@ -141,14 +138,11 @@ Roles transferencia: ${config.transferRoles?.join(', ') || 'Ninguno'}`);
     if (!tienePermiso) return interaction.reply({ content: 'No tienes permiso para fichar.', ephemeral: true });
 
     await miembro.roles.add(club.id);
-
     const boton = new ButtonBuilder()
       .setCustomId(`confirmar_${usuario.id}`)
       .setLabel('✅ Confirmar')
       .setStyle(ButtonStyle.Success);
-
     const row = new ActionRowBuilder().addComponents(boton);
-
     const canal = interaction.guild.channels.cache.get(config.fichajeChannel);
     if (canal) canal.send({
       content: `**${usuario.tag}** ha sido fichado por **${club.name}**.`,
@@ -185,7 +179,7 @@ Roles transferencia: ${config.transferRoles?.join(', ') || 'Ninguno'}`);
     if (!miembro) return interaction.reply({ content: 'El usuario no está en el servidor.', ephemeral: true });
 
     const tienePermiso = config.transferRoles?.some(roleName => interaction.member.roles.cache.some(r => r.name === roleName));
-    if (!tienePermiso) return interaction.reply({ content: 'No tienes permiso para hacer transferencias.', ephemeral: true });
+    if (!tienePermiso) return interaction.reply({ content: 'No tienes permiso para transferir jugadores.', ephemeral: true });
 
     if (!miembro.roles.cache.has(clubOrigen.id)) {
       return interaction.reply({ content: 'Ese usuario no pertenece al club de origen.', ephemeral: true });
@@ -193,29 +187,10 @@ Roles transferencia: ${config.transferRoles?.join(', ') || 'Ninguno'}`);
 
     await miembro.roles.remove(clubOrigen.id);
     await miembro.roles.add(clubDestino.id);
-
     const canal = interaction.guild.channels.cache.get(config.transferChannel);
     if (canal) canal.send(`**${usuario.tag}** ha sido transferido de **${clubOrigen.name}** a **${clubDestino.name}**.`);
-    return interaction.reply({ content: `El usuario fue transferido correctamente.`, ephemeral: true });
+    return interaction.reply({ content: `El usuario fue transferido de ${clubOrigen.name} a ${clubDestino.name}.`, ephemeral: true });
   }
 });
 
-// Express y ping automático
-const express = require('express');
-const app = express();
-app.get('/', (req, res) => res.send('Bot en funcionamiento'));
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
-
-// Manejadores de errores
-process.on('warning', (warning) => {
-  if (!warning.message.includes('ephemeral')) console.warn(warning);
-});
-
-process.on('unhandledRejection', err => {
-  console.error('Unhandled promise rejection:', err);
-});
-
-process.on('uncaughtException', err => {
-  console.error('Uncaught exception:', err);
-});
+client.login(process.env.TOKEN);
