@@ -114,6 +114,29 @@ client.on('interactionCreate', async interaction => {
     if (err) return interaction.reply({ content: err, ephemeral: true });
     return interaction.reply('Roles permitidos para bajas actualizados.');
   }
+});
+
+// Express y ping automático para mantener el bot activo
+const express = require('express');
+const app = express();
+
+app.get('/', (req, res) => res.send('Bot en funcionamiento'));
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
+
+// Manejadores de errores
+process.on('warning', (warning) => {
+  if (!warning.message.includes('ephemeral')) console.warn(warning);
+});
+
+process.on('unhandledRejection', err => {
+  console.error('Unhandled promise rejection:', err);
+});
+
+process.on('uncaughtException', err => {
+  console.error('Uncaught exception:', err);
+});
 
   if (commandName === 'set-roles-transferencia') {
     if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) return interaction.reply({ content: 'Solo los administradores pueden configurar roles.', ephemeral: true });
@@ -203,7 +226,6 @@ const app = express();
 app.get('/', (req, res) => res.send('Bot en funcionamiento'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
-setInterval(() => require('http').get(`http://localhost:${PORT}`), 220000);
 
 // Manejadores de errores
 process.on('warning', (warning) => {
