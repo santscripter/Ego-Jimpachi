@@ -81,7 +81,6 @@ client.on('interactionCreate', async interaction => {
     return null;
   };
 
-  // Todos los comandos aquí dentro ↓↓↓
   if (commandName === 'set-canal-fichajes') {
     if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) return interaction.reply({ content: 'Solo los administradores pueden cambiar el canal.', ephemeral: true });
     config.fichajeChannel = interaction.channel.id;
@@ -191,6 +190,8 @@ client.on('interactionCreate', async interaction => {
     if (canal) canal.send(`**${usuario.tag}** ha sido transferido de **${clubOrigen.name}** a **${clubDestino.name}**.`);
     return interaction.reply({ content: `El usuario fue transferido de ${clubOrigen.name} a ${clubDestino.name}.`, ephemeral: true });
   }
+}); // <--- AQUÍ cerramos el bloque que te faltaba
+
 // Mantener el bot activo en Render (evita que lo apague)
 const express = require('express');
 const app = express();
