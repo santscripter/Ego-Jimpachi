@@ -1,7 +1,6 @@
 // Requiere las dependencias
 const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
-require('dotenv').config();
 
 // Base de datos persistente con lowdb v5+
 const { Low } = require('lowdb');
