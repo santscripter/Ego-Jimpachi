@@ -3,8 +3,9 @@ const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, 
 const fs = require('fs');
 require('dotenv').config();
 
-// Base de datos persistente
-const { Low, JSONFile } = require('lowdb');
+// Base de datos persistente con lowdb v5+
+const { Low } = require('lowdb');
+const { JSONFile } = require('lowdb/node');
 const adapter = new JSONFile('config.db.json');
 const db = new Low(adapter);
 
