@@ -24,16 +24,16 @@ const client = new Client({
 
 (async () => {
   await db.read();
-  db.data ||= {
-    fichajeChannel: "",
-    bajasChannel: "",
-    transferChannel: "",
-    allowedRoles: [],
-    bajasRoles: [],
-    transferRoles: [],
-    valores: {}
-  };
-  await db.write();
+db.data ||= {};
+db.data.fichajeChannel ||= "";
+db.data.bajasChannel ||= "";
+db.data.transferChannel ||= "";
+db.data.allowedRoles ||= [];
+db.data.bajasRoles ||= [];
+db.data.transferRoles ||= [];
+db.data.precios ||= {};
+await db.write();
+
 
   client.once('ready', async () => {
     console.log(`Bot conectado como ${client.user.tag}`);
