@@ -1,14 +1,12 @@
-// Requiere las dependencias
-const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const fs = require('fs');
 
-// Base de datos persistente con lowdb v5+
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+require('dotenv').config();
+
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
 const adapter = new JSONFile('config.db.json');
 const db = new Low(adapter);
 
-// Inicializar cliente de Discord
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -19,7 +17,6 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-// Arrancar base de datos y bot
 (async () => {
   await db.read();
   db.data ||= {
@@ -72,12 +69,92 @@ const client = new Client({
     }
   });
 
-  client.login(process.env.TOKEN);
+  client.on('interactionCreate', async interaction => {
+    if (!interaction.isChatInputCommand()) return;
 
-  // Express para mantener el bot activo
-  const express = require('express');
-  const app = express();
-  app.get('/', (req, res) => res.send('Bot en funcionamiento'));
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
+    const { commandName } = interaction;
+
+    if (commandName === 'set-canal-fichajes') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
+        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
+      db.data.fichajeChannel = interaction.channel.id;
+      await db.write();
+      return interaction.reply(`Canal de fichajes configurado a <#${interaction.channel.id}>`);
+    }
+
+    if (commandName === 'set-canal-bajas') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
+        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
+      db.data.bajasChannel = interaction.channel.id;
+      await db.write();
+      return interaction.reply(`Canal de bajas configurado a <#${interaction.channel.id}>`);
+    }
+
+    if (commandName === 'set-canal-transferencia') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
+        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
+      db.data.transferChannel = interaction.channel.id;
+      await db.write();
+      return interaction.reply(`Canal de transferencias configurado a <#${interaction.channel.id}>`);
+    }
+
+    if (commandName === 'set-roles') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
+        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
+      const roles = interaction.options.getString('roles').split(',').map(r => r.trim());
+      db.data.allowedRoles = roles;
+      await db.write();
+      return interaction.reply('Roles permitidos actualizados.');
+    }
+
+    if (commandName === 'set-roles-bajas') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
+        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
+      const roles = interaction.options.getString('roles').split(',').map(r => r.trim());
+      db.data.bajasRoles = roles;
+      await db.write();
+      return interaction.reply('Roles de bajas actualizados.');
+    }
+
+    if (commandName === 'set-roles-transferencia') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
+        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
+      const roles = interaction.options.getString('roles').split(',').map(r => r.trim());
+      db.data.transferRoles = roles;
+      await db.write();
+      return interaction.reply('Roles de transferencia actualizados.');
+    }
+
+    if (commandName === 'reiniciar-fichajes') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
+        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
+      db.data = {
+        fichajeChannel: "",
+        bajasChannel: "",
+        transferChannel: "",
+        allowedRoles: [],
+        bajasRoles: [],
+        transferRoles: []
+      };
+      await db.write();
+      return interaction.reply('Configuración reiniciada.');
+    }
+
+    if (commandName === 'info-fichador') {
+      return interaction.reply(
+        `Fichajes: ${db.data.fichajeChannel ? `<#${db.data.fichajeChannel}>` : 'No configurado'}
+` +
+        `Bajas: ${db.data.bajasChannel ? `<#${db.data.bajasChannel}>` : 'No configurado'}
+` +
+        `Transferencias: ${db.data.transferChannel ? `<#${db.data.transferChannel}>` : 'No configurado'}
+` +
+        `Roles fichajes: ${db.data.allowedRoles.join(', ') || 'Ninguno'}
+` +
+        `Roles bajas: ${db.data.bajasRoles.join(', ') || 'Ninguno'}
+` +
+        `Roles transferencia: ${db.data.transferRoles.join(', ') || 'Ninguno'}`
+      );
+    }
+  });
+
 })();
