@@ -1,11 +1,16 @@
-
-const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 require('dotenv').config();
 
 const { Low } = require('lowdb');
 const { JSONFile } = require('lowdb/node');
 const adapter = new JSONFile('config.db.json');
 const db = new Low(adapter);
+
+const express = require('express');
+const app = express();
+app.get('/', (req, res) => res.send('Bot en funcionamiento'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
 
 const client = new Client({
   intents: [
@@ -25,39 +30,27 @@ const client = new Client({
     transferChannel: "",
     allowedRoles: [],
     bajasRoles: [],
-    transferRoles: []
+    transferRoles: [],
+    valores: {}
   };
   await db.write();
 
   client.once('ready', async () => {
     console.log(`Bot conectado como ${client.user.tag}`);
     client.user.setPresence({
-      activities: [{ name: '¡Fichajes! 🏆', type: 0 }],
+      activities: [{ name: '¡Fichajes y Valores! 💰', type: 0 }],
       status: 'online'
     });
 
     const commands = [
-      new SlashCommandBuilder().setName('set-canal-fichajes').setDescription('Establece el canal de fichajes (admin)'),
-      new SlashCommandBuilder().setName('set-canal-bajas').setDescription('Establece el canal de bajas (admin)'),
-      new SlashCommandBuilder().setName('set-canal-transferencia').setDescription('Establece el canal de transferencias (admin)'),
-      new SlashCommandBuilder().setName('set-roles').setDescription('Establece los roles permitidos')
-        .addStringOption(opt => opt.setName('roles').setDescription('Nombres de roles separados por coma').setRequired(true)),
-      new SlashCommandBuilder().setName('set-roles-bajas').setDescription('Establece roles permitidos para bajas')
-        .addStringOption(opt => opt.setName('roles').setDescription('Nombres de roles separados por coma').setRequired(true)),
-      new SlashCommandBuilder().setName('set-roles-transferencia').setDescription('Establece roles permitidos para transferencias')
-        .addStringOption(opt => opt.setName('roles').setDescription('Nombres de roles separados por coma').setRequired(true)),
-      new SlashCommandBuilder().setName('info-fichador').setDescription('Muestra la configuración actual del fichador'),
-      new SlashCommandBuilder().setName('reiniciar-fichajes').setDescription('Reinicia la configuración del fichador (admin)'),
-      new SlashCommandBuilder().setName('fichar').setDescription('Inicia un fichaje')
-        .addUserOption(opt => opt.setName('usuario').setDescription('Usuario a fichar').setRequired(true))
-        .addRoleOption(opt => opt.setName('club').setDescription('Menciona el rol del club').setRequired(true)),
-      new SlashCommandBuilder().setName('bajas').setDescription('Remueve a un usuario de un club')
-        .addUserOption(opt => opt.setName('usuario').setDescription('Usuario a dar de baja').setRequired(true))
-        .addRoleOption(opt => opt.setName('club').setDescription('Rol del club del que será removido').setRequired(true)),
-      new SlashCommandBuilder().setName('transferencia').setDescription('Transfiere un usuario de un club a otro')
-        .addUserOption(opt => opt.setName('usuario').setDescription('Usuario a transferir').setRequired(true))
-        .addRoleOption(opt => opt.setName('club_origen').setDescription('Club de origen').setRequired(true))
-        .addRoleOption(opt => opt.setName('club_destino').setDescription('Club de destino').setRequired(true))
+      new SlashCommandBuilder().setName('valor').setDescription('Muestra el valor de un jugador')
+        .addUserOption(opt => opt.setName('jugador').setDescription('Jugador a mostrar su valor')),
+      new SlashCommandBuilder().setName('subir-precio').setDescription('Sube el valor de un jugador')
+        .addUserOption(opt => opt.setName('jugador').setDescription('Jugador al que subir el valor').setRequired(true))
+        .addIntegerOption(opt => opt.setName('cantidad').setDescription('Cantidad a subir').setRequired(true)),
+      new SlashCommandBuilder().setName('bajar-precio').setDescription('Baja el valor de un jugador')
+        .addUserOption(opt => opt.setName('jugador').setDescription('Jugador al que bajar el valor').setRequired(true))
+        .addIntegerOption(opt => opt.setName('cantidad').setDescription('Cantidad a bajar').setRequired(true))
     ];
 
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -71,90 +64,55 @@ const client = new Client({
 
   client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
-
     const { commandName } = interaction;
 
-    if (commandName === 'set-canal-fichajes') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
-        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
-      db.data.fichajeChannel = interaction.channel.id;
-      await db.write();
-      return interaction.reply(`Canal de fichajes configurado a <#${interaction.channel.id}>`);
+    await db.read();
+
+    if (commandName === 'valor') {
+      const usuario = interaction.options.getUser('jugador') || interaction.user;
+      const valor = db.data.valores[usuario.id]?.cantidad || 0;
+      const ultima = db.data.valores[usuario.id]?.ultima || 'Sin registro';
+      const embed = new EmbedBuilder()
+        .setTitle(`Valor de ${usuario.username}`)
+        .addFields(
+          { name: 'Valor actual', value: `${valor}`, inline: true },
+          { name: 'Último cambio', value: ultima, inline: true }
+        )
+        .setColor('Gold');
+      return interaction.reply({ embeds: [embed] });
     }
 
-    if (commandName === 'set-canal-bajas') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
-        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
-      db.data.bajasChannel = interaction.channel.id;
-      await db.write();
-      return interaction.reply(`Canal de bajas configurado a <#${interaction.channel.id}>`);
-    }
+    if (commandName === 'subir-precio' || commandName === 'bajar-precio') {
+      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+        return interaction.reply({ content: 'Solo administradores pueden modificar valores.', ephemeral: true });
+      }
 
-    if (commandName === 'set-canal-transferencia') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
-        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
-      db.data.transferChannel = interaction.channel.id;
-      await db.write();
-      return interaction.reply(`Canal de transferencias configurado a <#${interaction.channel.id}>`);
-    }
+      const jugador = interaction.options.getUser('jugador');
+      const cantidad = interaction.options.getInteger('cantidad');
 
-    if (commandName === 'set-roles') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
-        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
-      const roles = interaction.options.getString('roles').split(',').map(r => r.trim());
-      db.data.allowedRoles = roles;
-      await db.write();
-      return interaction.reply('Roles permitidos actualizados.');
-    }
+      db.data.valores[jugador.id] ||= { cantidad: 0, ultima: '' };
+      if (commandName === 'subir-precio') {
+        db.data.valores[jugador.id].cantidad += cantidad;
+      } else {
+        db.data.valores[jugador.id].cantidad = Math.max(0, db.data.valores[jugador.id].cantidad - cantidad);
+      }
 
-    if (commandName === 'set-roles-bajas') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
-        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
-      const roles = interaction.options.getString('roles').split(',').map(r => r.trim());
-      db.data.bajasRoles = roles;
+      const fecha = new Date();
+      const format = `${fecha.getDate().toString().padStart(2, '0')}/${(fecha.getMonth() + 1).toString().padStart(2, '0')}/${fecha.getFullYear()} - ${fecha.getHours().toString().padStart(2, '0')}:${fecha.getMinutes().toString().padStart(2, '0')}`;
+      db.data.valores[jugador.id].ultima = format;
       await db.write();
-      return interaction.reply('Roles de bajas actualizados.');
-    }
 
-    if (commandName === 'set-roles-transferencia') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
-        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
-      const roles = interaction.options.getString('roles').split(',').map(r => r.trim());
-      db.data.transferRoles = roles;
-      await db.write();
-      return interaction.reply('Roles de transferencia actualizados.');
-    }
+      const embed = new EmbedBuilder()
+        .setTitle(`Valor actualizado de ${jugador.username}`)
+        .addFields(
+          { name: 'Nuevo valor', value: `${db.data.valores[jugador.id].cantidad}`, inline: true },
+          { name: 'Último cambio', value: format, inline: true }
+        )
+        .setColor(commandName === 'subir-precio' ? 'Green' : 'Red');
 
-    if (commandName === 'reiniciar-fichajes') {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator))
-        return interaction.reply({ content: 'Solo administradores.', ephemeral: true });
-      db.data = {
-        fichajeChannel: "",
-        bajasChannel: "",
-        transferChannel: "",
-        allowedRoles: [],
-        bajasRoles: [],
-        transferRoles: []
-      };
-      await db.write();
-      return interaction.reply('Configuración reiniciada.');
-    }
-
-    if (commandName === 'info-fichador') {
-      return interaction.reply(
-        `Fichajes: ${db.data.fichajeChannel ? `<#${db.data.fichajeChannel}>` : 'No configurado'}
-` +
-        `Bajas: ${db.data.bajasChannel ? `<#${db.data.bajasChannel}>` : 'No configurado'}
-` +
-        `Transferencias: ${db.data.transferChannel ? `<#${db.data.transferChannel}>` : 'No configurado'}
-` +
-        `Roles fichajes: ${db.data.allowedRoles.join(', ') || 'Ninguno'}
-` +
-        `Roles bajas: ${db.data.bajasRoles.join(', ') || 'Ninguno'}
-` +
-        `Roles transferencia: ${db.data.transferRoles.join(', ') || 'Ninguno'}`
-      );
+      return interaction.reply({ embeds: [embed] });
     }
   });
 
+  client.login(process.env.TOKEN);
 })();

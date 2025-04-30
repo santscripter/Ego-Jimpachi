@@ -4,5 +4,6 @@
   "transferChannel": "",
   "allowedRoles": [],
   "bajasRoles": [],
-  "transferRoles": []
+  "transferRoles": [],
+  "jugadores": {}
 }
